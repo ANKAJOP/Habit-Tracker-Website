@@ -328,7 +328,7 @@ const About = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="bg-white text-indigo-600 px-12 py-5 rounded-full text-xl font-bold shadow-2xl hover:shadow-3xl transition-all"
-              onClick={() => window.location.href = '/register'}
+              onClick={() => window.location.href = '/habits'}
             >
               Get Started Free →
             </motion.button>
