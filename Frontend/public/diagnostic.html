@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rewards API Diagnostic</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .status {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 10px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success { border-left: 4px solid #22c55e; }
+        .error { border-left: 4px solid #ef4444; }
+        .warning { border-left: 4px solid #f59e0b; }
+        h1 { color: #333; }
+        h2 { color: #666; font-size: 18px; margin-bottom: 10px; }
+        pre { background: #f9f9f9; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        button {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover { background: #4f46e5; }
+        .info { color: #666; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Rewards API Diagnostic Tool</h1>
+    
+    <div id="results"></div>
+    
+    <button onclick="runDiagnostic()">Run Diagnostic</button>
+    <button onclick="clearSession()">Clear Session & Reload</button>
+
+    <script>
+        const API_URL = "http://localhost:5000";
+        
+        function log(type, title, content) {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `<h2>${title}</h2>${content}`;
+            document.getElementById('results').appendChild(div);
+        }
+
+        async function runDiagnostic() {
+            document.getElementById('results').innerHTML = '';
+            
+            // Check 1: Session Storage
+            log('warning', '1️⃣ Checking Session Storage', '<p class="info">Looking for user data...</p>');
+            const userStr = sessionStorage.getItem('user');
+            
+            if (!userStr) {
+                log('error', '❌ No User Found', '<p>You are not logged in. Please log in first.</p>');
+                return;
+            } else {
+                log('success', '✅ User Found in Session', '<p>User data exists in sessionStorage</p>');
+            }
+            
+            // Check 2: Parse User
+            let user;
+            try {
+                user = JSON.parse(userStr);
+                log('success', '✅ User Data Parsed', `<pre>${JSON.stringify(user, null, 2).substring(0, 200)}...</pre>`);
+            } catch (e) {
+                log('error', '❌ Invalid User Data', `<p>Could not parse user data: ${e.message}</p>`);
+                return;
+            }
+            
+            // Check 3: Token
+            if (!user.token) {
+                log('error', '❌ No Token Found', '<p>User data exists but has no authentication token</p>');
+                return;
+            } else {
+                log('success', '✅ Token Found', `<p>Token: ${user.token.substring(0, 20)}...</p>`);
+            }
+            
+            // Check 4: Backend Health
+            log('warning', '2️⃣ Checking Backend Server', '<p class="info">Testing connection...</p>');
+            try {
+                const healthRes = await fetch(API_URL);
+                const healthText = await healthRes.text();
+                log('success', '✅ Backend Server Running', `<p>${healthText}</p>`);
+            } catch (e) {
+                log('error', '❌ Backend Not Accessible', `<p>Cannot connect to ${API_URL}<br>Error: ${e.message}<br><br>Make sure backend is running: <code>npm start</code> in Backend folder</p>`);
+                return;
+            }
+            
+            // Check 5: Rewards API
+            log('warning', '3️⃣ Fetching Rewards', '<p class="info">Calling /api/rewards endpoint...</p>');
+            try {
+                const config = {
+                    headers: {
+                        'Authorization': `Bearer ${user.token}`
+                    }
+                };
+                
+                const response = await fetch(`${API_URL}/api/rewards`, config);
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    log('error', `❌ API Error (${response.status})`, `<p>${errorData.message}</p>`);
+                    
+                    if (response.status === 401) {
+                        log('warning', '💡 Solution', '<p>Your session has expired. Please log in again.</p>');
+                    }
+                    return;
+                }
+                
+                const rewards = await response.json();
+                log('success', `✅ Rewards Fetched Successfully!`, 
+                    `<p>Found ${rewards.length} rewards in database</p>
+                     <pre>${JSON.stringify(rewards.slice(0, 2), null, 2)}</pre>
+                     ${rewards.length > 2 ? `<p class="info">... and ${rewards.length - 2} more</p>` : ''}`
+                );
+                
+            } catch (e) {
+                log('error', '❌ Failed to Fetch Rewards', `<p>${e.message}</p>`);
+            }
+        }
+        
+        function clearSession() {
+            sessionStorage.clear();
+            alert('Session cleared! You will be redirected to login page.');
+            window.location.href = '/';
+        }
+        
+        // Auto-run on load
+        window.onload = () => {
+            setTimeout(runDiagnostic, 500);
+        };
+    </script>
+</body>
+</html>
