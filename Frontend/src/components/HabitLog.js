@@ -274,7 +274,7 @@ const HabitLog = () => {
               </p>
               {!searchTerm && selectedCategory === "All" && (
                 <button
-                  onClick={() => window.location.href = "/add-habit"}
+                  onClick={() => window.location.href = "/habits"}
                   className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-8 py-4 rounded-xl font-bold shadow-lg"
                 >
                   Create Your First Habit
